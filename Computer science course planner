@@ -1,0 +1,201 @@
+/*
+OMAR BARAJAS
+06/22/2025
+*/
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <cctype>
+#include <limits>
+
+// Class to hold course title, number and prerequisites
+
+class Course {
+private:
+    std::string courseNumber;
+    std::string title;
+    std::vector<std::string> prerequisites;
+
+    // Constructors
+public:
+    Course() = default;
+    Course(std::string num, std::string name) : courseNumber(num), title(name) {}
+
+    // Getter functions
+    std::string getCourseNumber() const { return courseNumber; }
+    std::string getTitle() const { return title; }
+    std::vector<std::string> getPrerequisites() const { return prerequisites; }
+
+    //Add course prerequisite
+    void addPrerequisite(const std::string& prereq) {
+        prerequisites.push_back(prereq);
+    }
+
+    //Display full course information/details
+    void displayCourseInfo(const std::map<std::string, Course>& courses) const {
+        std::cout << courseNumber << ", " << title << std::endl;
+        if (!prerequisites.empty()) {
+            std::cout << "Prerequisites: ";
+            for (size_t i = 0; i < prerequisites.size(); ++i) {
+                auto it = courses.find(prerequisites[i]);
+                if (it != courses.end()) {
+                    std::cout << prerequisites[i] << ", " << it->second.getTitle();
+                }
+                else {
+                    std::cout << prerequisites[i] << " (Title not found)";
+                }
+                if (i != prerequisites.size() - 1) {
+                    std::cout << ", ";
+                }
+            }
+            std::cout << std::endl;
+        }
+    }
+};
+
+// Declare functions
+void loadDataStructure(std::map<std::string, Course>& courses);
+void printCourseList(const std::map<std::string, Course>& courses);
+void printCourse(const std::map<std::string, Course>& courses);
+void displayMenu();
+
+//Program Loop
+int main() {
+    std::map<std::string, Course> courses;
+    int choice = 0;
+
+    std::cout << "Welcome to the course planner." << std::endl << std::endl;
+
+    //Menu loop
+    while (choice != 9) {
+        displayMenu();
+        std::cin >> choice;
+
+        // input validation
+        if (std::cin.fail()) {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            choice = 0;
+        }
+        //Menu options
+        switch (choice) {
+        case 1:
+            loadDataStructure(courses);
+            break;
+        case 2:
+            printCourseList(courses);
+            break;
+        case 3:
+            printCourse(courses);
+            break;
+        case 9:
+            std::cout << "Thank you for using the course planner!" << std::endl;
+            break;
+        default:
+            std::cout << choice << " is not a valid option." << std::endl;
+            break;
+        }
+    }
+
+    return 0;
+}
+    //Main Menu Display
+void displayMenu() {
+    std::cout << std::endl;
+    std::cout << "1. Load Data Structure." << std::endl;
+    std::cout << "2. Print Course List." << std::endl;
+    std::cout << "3. Print Course." << std::endl;
+    std::cout << "9. Exit" << std::endl << std::endl;
+    std::cout << "What would you like to do? ";
+}
+
+//Load data from CSV file
+void loadDataStructure(std::map<std::string, Course>& courses) {
+    const std::string filename = "CS 300 ABCU_Advising_Program_Input.csv";
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        std::cout << "Error: Could not open file " << filename << std::endl;
+        return;
+    }
+
+    std::string line;
+    while (getline(file, line)) {
+        if (line.empty()) continue;
+
+        std::stringstream ss(line);
+        std::string token;
+        std::vector<std::string> tokens;
+
+        while (getline(ss, token, ',')) {
+            token.erase(0, token.find_first_not_of(" \t\n\r\f\v"));
+            token.erase(token.find_last_not_of(" \t\n\r\f\v") + 1);
+            if (!token.empty()) {
+                tokens.push_back(token);
+            }
+        }
+
+        if (tokens.size() >= 2) {
+            Course newCourse(tokens[0], tokens[1]);
+            for (size_t i = 2; i < tokens.size(); ++i) {
+                newCourse.addPrerequisite(tokens[i]);
+            }
+            courses[tokens[0]] = newCourse;
+        }
+    }
+
+    std::cout << "Data loaded successfully from " << filename << std::endl;
+    file.close();
+}
+
+// Display/Print all courses alphanumerically
+void printCourseList(const std::map<std::string, Course>& courses) {
+    if (courses.empty()) {
+        std::cout << "No course data loaded. Please load data first." << std::endl;
+        return;
+    }
+
+    std::cout << "Here is a sample schedule:" << std::endl << std::endl;
+
+    std::vector<Course> courseList;
+    for (const auto& pair : courses) {
+        courseList.push_back(pair.second);
+    }
+
+    //Sort course list by course number
+    std::sort(courseList.begin(), courseList.end(),
+        [](const Course& a, const Course& b) {
+            return a.getCourseNumber() < b.getCourseNumber();
+        });
+
+    //print each course
+    for (const auto& course : courseList) {
+        std::cout << course.getCourseNumber() << ", " << course.getTitle() << std::endl;
+    }
+}
+
+void printCourse(const std::map<std::string, Course>& courses) {
+    if (courses.empty()) {
+        std::cout << "No course data loaded. Please load data first." << std::endl;
+        return;
+    }
+
+    std::string courseNumber;
+    std::cout << "What course do you want to know about? ";
+    std::cin >> courseNumber;
+
+    std::transform(courseNumber.begin(), courseNumber.end(), courseNumber.begin(), ::toupper);
+
+    // Print the course and its prerequisites
+    auto it = courses.find(courseNumber);
+    if (it != courses.end()) {
+        it->second.displayCourseInfo(courses);
+    }
+    else {
+        std::cout << "Course " << courseNumber << " not found." << std::endl;
+    }
+}
